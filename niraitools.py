@@ -20,38 +20,38 @@ class NiraiCompiler:
         self.output = output
         self.outputdir = outputdir
         self.thirdpartydir = os.path.join(THIRDPARTY_ROOT, 'win-libs-vc10')
-        
-        self.includedirs = includedirs.copy()       
+
+        self.includedirs = includedirs.copy()
         self.includedirs.add(os.path.join(PANDA3D_ROOT, 'built', 'include'))
         self.includedirs.add(os.path.join(PYTHON_ROOT, 'Include'))
         self.includedirs.add(SOURCE_ROOT)
-        
+
         self.libs = libs.copy()
-        
+
         self.libpath = libpath.copy()
-        
+
         self.builtLibs = os.path.join(NIRAI_ROOT, 'panda3d', 'built', 'lib')
         self.libpath.add(self.builtLibs)
         self.libpath.add(os.path.join(NIRAI_ROOT, 'python'))
-        
+
         self.sources = set()
         self.__built = set()
-        
+
     def add_source(self, filename):
         self.sources.add(filename)
-        
+
     def add_library(self, lib, thirdparty=False):
         if thirdparty:
             lib = os.path.join(self.thirdpartydir, lib)
-            
+
         self.libs.add(lib + '.lib')
-        
+
     def add_nirai_files(self):
         for filename in ('unicode/unicodedata.c', 'rc4.cxx', 'main.cxx'):
             self.add_source(os.path.join(SOURCE_ROOT, filename))
 
         self.libs |= set(glob.glob(os.path.join(self.builtLibs, '*.lib')))
-        
+
         self.add_library('pythonembed')
 
         self.add_library('ws2_32')
@@ -84,129 +84,129 @@ class NiraiCompiler:
         self.add_library('tiff\\lib\\libtiff', thirdparty=True)
         self.add_library('fftw\\lib\\fftw', thirdparty=True)
         self.add_library('fftw\\lib\\rfftw', thirdparty=True)
-        
+
     def __run_command(self, cmd):
         p = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr)
         v = p.wait()
-    
+
         if v != 0:
             print 'The following command returned non-zero value (%d): %s' % (v, cmd[:100] + '...')
             sys.exit(1)
 
     def __compile(self, filename):
         out = '%s/%s.obj' % (self.outputdir, os.path.basename(filename).rsplit('.', 1)[0])
-    
+
         cmd = 'cl /c /GF /MP4 /DPy_BUILD_CORE /DNTDDI_VERSION=0x0501 /wd4996 /wd4275 /wd4267 /wd4101 /wd4273 /nologo /EHsc /MD /Zi /O2'
         for ic in self.includedirs:
             cmd += ' /I"%s"' % ic
-                  
+
         cmd += ' /Fo%s "%s"' % (out, filename)
-        
+
         self.__run_command(cmd)
         self.__built.add(out)
-    
+
     def __link(self):
         cmd = 'link /LTCG /LTCG:STATUS /nologo /out:%s/%s' % (self.outputdir, self.output)
         for obj in self.__built:
             cmd += ' "%s"' % obj
-            
+
         for lib in self.libs:
             cmd += ' "%s"' % lib
-            
+
         for path in self.libpath:
             cmd += ' /LIBPATH:"%s"' % path
-            
+
         cmd += ' /RELEASE /nodefaultlib:python27.lib /ignore:4049 /ignore:4006 /ignore:4221'
         self.__run_command(cmd)
-        
+
     def run(self):
         print 'Compiling CXX codes...'
         for filename in self.sources:
             self.__compile(filename)
-            
+
         print 'Linking...'
         self.__link()
-        
+
 class NiraiPackager:
     HEADER = 'NRI\n'
-    
+
     def __init__(self, outfile):
         self.modules = OrderedDict()
         self.outfile = outfile
-        
+
     def __read_file(self, filename, mangler=None):
         with open(filename, 'rb') as f:
             data = f.read()
-            
+
         base = filename.rsplit('.', 1)[0].replace('\\', '/').replace('/', '.')
         pkg = base.endswith('.__init__')
         moduleName = base.rsplit('.', 1)[0] if pkg else base
-            
+
         name = moduleName
         if mangler is not None:
             name = mangler(name)
-            
+
         if not name:
             return '', ('', 0)
-         
+
         try:
             data = self.compile_module(name, data)
-            
+
         except:
             print 'WARNING: Failed to compile', filename
             return '', ('', 0)
-            
+
         size = len(data) * (-1 if pkg else 1)
         return name, (data, size)
-        
+
     def compile_module(self, name, data):
         return marshal.dumps(compile(data, name, 'exec'))
-        
+
     def add_module(self, moduleName, data, size=None, compile=False, negSize=False):
         if compile:
             data = self.compile_module(moduleName, data)
-            
+
         if size is None:
             size = len(data)
             if negSize:
                 size = -size
-            
+
         self.modules[moduleName] = (data, size)
-        
+
     def add_file(self, filename, mangler=None):
         print 'Adding file', filename
         moduleName, (data, size) = self.__read_file(filename, mangler)
         if moduleName:
             moduleName = os.path.basename(filename).rsplit('.', 1)[0]
             self.add_module(moduleName, data, size)
-    
+
     def add_directory(self, dir, mangler=None):
         print 'Adding directory', dir
-        
+
         def _recurse_dir(dir):
             for f in os.listdir(dir):
                 f = os.path.join(dir, f)
 
                 if os.path.isdir(f):
                     _recurse_dir(f)
-            
+
                 elif f.endswith('py'):
                     moduleName, (data, size) = self.__read_file(f, mangler)
                     if moduleName:
                         self.add_module(moduleName, data, size)
-                    
+
         _recurse_dir(dir)
-        
+
     def get_mangle_base(self, *path):
         return len(os.path.join(*path).rsplit('.', 1)[0].replace('\\', '/').replace('/', '.')) + 1
-        
+
     def add_panda3d_dirs(self):
         manglebase = self.get_mangle_base(NIRAI_ROOT, 'panda3d')
-        
+
         def _mangler(name):
             name = name[manglebase:]
             return name.strip('.')
-            
+
         def _mangler_direct(name):
             name = name[manglebase:].strip('.')
             parts = name.split('.')
@@ -214,49 +214,48 @@ class NiraiPackager:
                 del parts[1]
 
             return '.'.join(parts)
-            
+
         self.add_directory(os.path.join(NIRAI_ROOT, 'panda3d', 'direct'), mangler=_mangler_direct)
         self.add_directory(os.path.join(NIRAI_ROOT, 'panda3d', 'pandac'), mangler=_mangler)
-        
+
         # panda3d/direct has no __init__
         self.add_module('direct', '', compile=True, negSize=True)
 
     def add_default_lib(self):
         manglebase = self.get_mangle_base(NIRAI_ROOT, 'python', 'Lib')
-        
+
         def _mangler(name):
             name = name[manglebase:]
             return name.strip('.')
-            
+
         self.add_directory(os.path.join(NIRAI_ROOT, 'python', 'Lib'), mangler=_mangler)
-        
+
     def write_out(self):
         f = open(self.outfile, 'wb')
         f.write(self.HEADER)
         f.write(self.process_modules())
         f.close()
-        
+
     def generate_key(self, size=256):
         return os.urandom(size)
-        
+
     def dump_key(self, key):
         for k in key:
             print ord(k),
-        
+
         print
-        
+
     def process_modules(self):
         # Pure virtual
         raise NotImplementedError('process_datagram')
-        
+
     def get_file_contents(self, filename, keysize=0):
         with open(filename, 'rb') as f:
             data = f.read()
-            
+
         if keysize:
             key = self.generate_key(keysize)
             rc4.rc4_setkey(key)
             data = key + rc4.rc4(data)
-            
+
         return data
-        

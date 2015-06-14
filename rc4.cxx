@@ -7,11 +7,11 @@ Usage:
 
 C++:
     Make a forward declaration for rc4 method, eg: string rc4(const char* data, const char* key, int ds, int ks)
-    Link your app against this module
-    
+    Link your app against this module.
+
 Python:
-    Generate a PYD (within Nirai.exe you can just import it)
-    
+    Generate a PYD (within Nirai.exe, you can just import it).
+
     >>> import rc4
     >>> rc4.rc4_setkey('Test123')
     >>> string = "HELLO WORLD!"
@@ -29,7 +29,7 @@ int g_python_key_size = 5;
 string rc4(const char* data, const char* key, int ds, int ks)
 {
     unsigned int i, j, k;
-    
+
     unsigned char s[256];
     for (i = 0; i < 256; i++)
     {
@@ -37,7 +37,7 @@ string rc4(const char* data, const char* key, int ds, int ks)
     };
 
     unsigned char temp;
-    
+
     j = 0;
     for (i = 0; i < 256; i++)
     {
@@ -50,18 +50,18 @@ string rc4(const char* data, const char* key, int ds, int ks)
     j = 0;
     i = 0;
     string out;
-    
+
     for (k = 0; k < ds; k++)
     {
         j = (j + 1) % 256;
         i = (i + s[j]) % 256;
-        
+
         temp = s[i];
         s[i] = s[j];
         s[j] = temp;   
 		out += (unsigned char)(data[k] ^ s[(s[j] + s[i]) % 256]);
     };
-    
+
 	return out;
 };
 
@@ -69,21 +69,21 @@ static PyObject* py_rc4(PyObject* self, PyObject* args)
 {
     const char* _data;
     int _datalen;
-    
+
     if (!PyArg_ParseTuple(args, "s#:in_bytes", &_data, &_datalen))
     {
         return NULL;
     };
-    
+
     string res = rc4(_data, g_python_key, _datalen, g_python_key_size);
-  
+
     PyObject* v = Py_BuildValue("s#", res.c_str(), res.size());
     res.erase();
     return v;
 };
 
 static PyObject* py_rc4_setkey(PyObject* self, PyObject* args)
-{    
+{
     if (!PyArg_ParseTuple(args, "s#:in_bytes", &g_python_key, &g_python_key_size))
     {
         return NULL;
