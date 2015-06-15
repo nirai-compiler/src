@@ -6,7 +6,7 @@ from collections import OrderedDict
 import subprocess, glob, sys, os
 
 import marshal
-import rc4
+import aes
 
 SOURCE_ROOT = os.path.dirname(os.path.abspath(__file__))
 NIRAI_ROOT = os.path.abspath(os.path.join(SOURCE_ROOT, '..'))
@@ -47,7 +47,7 @@ class NiraiCompiler:
         self.libs.add(lib + '.lib')
         
     def add_nirai_files(self):
-        for filename in ('unicode/unicodedata.c', 'rc4.cxx', 'main.cxx'):
+        for filename in ('unicode/unicodedata.c', 'aes.cxx', 'main.cxx'):
             self.add_source(os.path.join(SOURCE_ROOT, filename))
 
         self.libs |= set(glob.glob(os.path.join(self.builtLibs, '*.lib')))
@@ -66,6 +66,7 @@ class NiraiCompiler:
         self.add_library('wsock32')
         self.add_library('opengl32')
         self.add_library('imm32')
+        self.add_library('crypt32')
 
         self.add_library('nvidiacg\\lib\\cgGL', thirdparty=True)
         self.add_library('nvidiacg\\lib\\cgD3D9', thirdparty=True)
@@ -249,14 +250,14 @@ class NiraiPackager:
         # Pure virtual
         raise NotImplementedError('process_datagram')
         
-    def get_file_contents(self, filename, keysize=0):
+    def get_file_contents(self, filename, encrypt=False):
         with open(filename, 'rb') as f:
             data = f.read()
             
-        if keysize:
-            key = self.generate_key(keysize)
-            rc4.rc4_setkey(key)
-            data = key + rc4.rc4(data)
+        if encrypt:
+            iv = self.generate_key(16)
+            key = self.generate_key(16)
+            data = iv + key + aes.encrypt(data, key, iv)
             
         return data
         

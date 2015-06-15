@@ -144,16 +144,15 @@ void start_nirai()
 };
 
 // fwd decls
-void initrc4();
+void initaes();
 extern "C" __declspec(dllexport) void initunicodedata();
-string rc4(const char*, const char*, int, int);
 
 void setup_python()
 {
     // clear sys.path
     PyRun_SimpleString("__import__('sys').path = ['.']");
     
-    initrc4();
+    initaes();
     initunicodedata();
            
     // setup some modules
