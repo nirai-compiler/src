@@ -1,9 +1,9 @@
 @echo off
 
-rem Compiles aes.cxx to a pyd
+rem Compiles aes.cxx to a .pyd file.
 
 set CMD=cl /c /nologo /EHsc /DBUILD_PYD /I../panda3d/thirdparty/win-python/include
-set CMD=%CMD% /I../panda3d/thirdparty/win-libs-vc10/openssl/include aes.cxx 
+set CMD=%CMD% /I../panda3d/thirdparty/win-libs-vc10/openssl/include aes.cxx
 %CMD%
 
 set CMD=link /DLL /LIBPATH:"../panda3d/thirdparty/win-python/libs"
