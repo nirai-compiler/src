@@ -5,7 +5,7 @@ from panda3d.core import *
 from collections import OrderedDict
 import subprocess, glob, sys, os
 
-import marshal
+import niraimarshal
 import aes
 
 SOURCE_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -161,9 +161,9 @@ class NiraiPackager:
         return name, (data, size)
 
     def compile_module(self, name, data):
-        return marshal.dumps(compile(data, name, 'exec'))
+        return niraimarshal.dumps(compile(data, name, 'exec'))
 
-    def add_module(self, moduleName, data, size=None, compile=False, negSize=False):
+    def add_module(self, moduleName, data, size=None, compile=False, negSize=False):                
         if compile:
             data = self.compile_module(moduleName, data)
 
