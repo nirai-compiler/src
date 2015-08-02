@@ -3,46 +3,6 @@
 #include "graphicsPipeSelection.h"
 #include "config_openalAudio.h"
 
-bool does_dir_exist(string pathname)
-{
-  DWORD ftyp = GetFileAttributesA(pathname.c_str());
-  if (ftyp == INVALID_FILE_ATTRIBUTES)
-    return false;  // Something is wrong with your path!
-
-  if (ftyp & FILE_ATTRIBUTE_DIRECTORY)
-    return true;
-
-  return false;
-}
-
-void clear_env()
-{
-    _putenv_s("PANDA_PRC_PATH", "");
-    _putenv_s("PANDA_PRC_DIR", "");
-    _putenv_s("PRC_PATH", "");
-    _putenv_s("PRC_DIR", "");
-}
-
-// First: Setup the environ
-// so we don't load unwanted PRCs.
-// Must be done in static time (outside main).
-void* setup_env()
-{
-    static const char garbage[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    std::string badpath = "invalid";
-
-    while (does_dir_exist(badpath))
-        badpath += garbage[rand() % 15];
-
-    _putenv_s("PANDA_PRC_PATH", badpath.c_str());
-    _putenv_s("PANDA_PRC_DIR", badpath.c_str());
-    _putenv_s("PRC_PATH", badpath.c_str());
-    _putenv_s("PRC_DIR", badpath.c_str());
-    return NULL;
-}
-
-static void* _ = setup_env();
-
 AudioManager* Create_OpenALAudioManager();
 // Register OpenAL audio (like setup_env, must be in static time).
 void* load_openal()
@@ -110,7 +70,6 @@ void start_nirai()
 
     // Init Panda3D.
     initcore();
-    clear_env();
 
     // Setup the display.
     init_libwgldisplay();
