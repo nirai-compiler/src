@@ -104,14 +104,12 @@ void start_nirai()
 
 // fwd decls
 void initaes();
-extern "C" __declspec(dllexport) void initunicodedata();
 
 void setup_python()
 {
     // Clear sys.path.
     PyRun_SimpleString("__import__('sys').path = ['.']");
     initaes();
-    initunicodedata();
 
     // Setup some modules.
     inject_into_sys_modules("core", "libpandaexpress");

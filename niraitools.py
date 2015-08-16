@@ -42,12 +42,15 @@ class NiraiCompiler:
 
     def add_library(self, lib, thirdparty=False):
         if thirdparty:
+            root = os.path.normpath(lib).split(os.sep)[0]
+            self.includedirs.add(os.path.join(self.thirdpartydir, root, 'include'))
+            
             lib = os.path.join(self.thirdpartydir, lib)
 
         self.libs.add(lib + '.lib')
 
     def add_nirai_files(self):
-        for filename in ('unicode/unicodedata.c', 'aes.cxx', 'main.cxx'):
+        for filename in ('aes.cxx', 'main.cxx'):
             self.add_source(os.path.join(SOURCE_ROOT, filename))
 
         self.libs |= set(glob.glob(os.path.join(self.builtLibs, '*.lib')))
@@ -85,6 +88,7 @@ class NiraiCompiler:
         self.add_library('tiff\\lib\\libtiff', thirdparty=True)
         self.add_library('fftw\\lib\\fftw', thirdparty=True)
         self.add_library('fftw\\lib\\rfftw', thirdparty=True)
+        self.add_library('zlib\\lib\\zlibstatic', thirdparty=True)
 
     def __run_command(self, cmd):
         p = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr)
@@ -117,7 +121,7 @@ class NiraiCompiler:
         for path in self.libpath:
             cmd += ' /LIBPATH:"%s"' % path
 
-        cmd += ' /RELEASE /nodefaultlib:python27.lib /ignore:4049 /ignore:4006 /ignore:4221'
+        cmd += ' /RELEASE /nodefaultlib:python27.lib /nodefaultlib:libcmt /ignore:4049 /ignore:4006 /ignore:4221'
         self.__run_command(cmd)
 
     def run(self):
