@@ -11,7 +11,7 @@
 #include <vector>
 
 #define NIRAI_VERSION_MAJOR 1
-#define NIRAI_VERSION_MINOR 5
+#define NIRAI_VERSION_MINOR 6
 
 // fwd decl nirai methods
 

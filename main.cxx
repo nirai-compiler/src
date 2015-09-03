@@ -15,12 +15,21 @@ void* load_openal()
 static void* __ = load_openal();
 
 // P3D Python modules initers.
-extern "C" __declspec(dllexport) void initcore();
-extern "C" __declspec(dllexport) void init_c_direct();
-extern "C" __declspec(dllexport) void initegg();
-extern "C" __declspec(dllexport) void initfx();
-extern "C" __declspec(dllexport) void initode();
-extern "C" __declspec(dllexport) void initphysics();
+#ifdef WIN32
+#define _P3D_INIT(MODULE) extern "C" __declspec(dllexport) void init##MODULE ();
+
+#else
+#define _P3D_INIT(MODULE) extern "C" void init##MODULE ();
+
+#endif
+
+_P3D_INIT(_core)
+_P3D_INIT(_direct)
+_P3D_INIT(fx)
+_P3D_INIT(egg)
+_P3D_INIT(ode)
+_P3D_INIT(physics)
+_P3D_INIT(interrogatedb)
 
 // P3D CXX fwd decls.
 void init_libwgldisplay();
@@ -29,37 +38,22 @@ void init_libpnmimagetypes();
 
 static PyMethodDef NiraiMethods[] = {{NULL, NULL, 0}};
 
-void inject_into_sys_modules(const std::string& module, const std::string& alias)
-{
-    std::string cmd = "__import__('sys').modules['";
-    cmd += alias;
-    cmd += "'] = __import__('";
-    cmd += module;
-    cmd += "')";
-    PyRun_SimpleString(cmd.c_str());
+static void inject_into_sys_modules(const std::string& module, const std::string& alias)
+{    
+    PyObject* sysmodule = PyImport_ImportModule("sys");
+    Py_INCREF(sysmodule);
+    PyObject* modulesdict = PyObject_GetAttrString(sysmodule, "modules");
+    Py_INCREF(modulesdict);
+    
+    PyObject* mod = PyImport_ImportModule(module.c_str());
+    Py_INCREF(mod);
+    PyDict_SetItemString(modulesdict, alias.c_str(), mod);
+    
+    Py_DECREF(modulesdict);
+    Py_DECREF(sysmodule);
 }
 
-void patch_module(PyObject* mod, const char* module, const char* alias, const char* fullname)
-{
-    PyObject* submodule = PyImport_ImportModule(module);
-    PyObject_SetAttrString(mod, alias, submodule);
-    inject_into_sys_modules(module, fullname);
-}
-
-void patch_module(PyObject* mod, const char* module, const char* alias)
-{
-    std::string fullname(PyModule_GetName(mod));
-    fullname += ".";
-    fullname += alias;
-    patch_module(mod, module, alias, fullname.c_str());
-}
-
-void patch_module(PyObject* mod, const char* module)
-{
-    patch_module(mod, module, module);
-}
-
-void start_nirai()
+static void start_nirai()
 {
     // Setup __nirai__.
     PyObject* niraimod = Py_InitModule("__nirai__", NiraiMethods);
@@ -69,7 +63,10 @@ void start_nirai()
     Py_DECREF(bt);
 
     // Init Panda3D.
-    initcore();
+    PyObject* panda3d_mod = Py_InitModule("panda3d", NiraiMethods);
+    Py_INCREF(panda3d_mod);
+
+    init_core();
 
     // Setup the display.
     init_libwgldisplay();
@@ -81,40 +78,46 @@ void start_nirai()
     init_libpnmimagetypes();
 
     // Init other modules.
-    init_c_direct();
+    initinterrogatedb();
+    init_direct();
     initegg();
     initfx();
     initode();
     initphysics();
-
-    // Now that the modules are loaded, we need to fix their internal name.
-    // They are normally loaded from the Panda3D directory,
-    // but here they lack the "panda3d." prefix, which we add manually.
-    // Also, _c_direct requires special alias.
-    PyObject* panda3d_mod = Py_InitModule("panda3d", NiraiMethods);
-    Py_INCREF(panda3d_mod);
-
-    patch_module(panda3d_mod, "core");
-    patch_module(panda3d_mod, "_c_direct", "direct");
-    patch_module(panda3d_mod, "egg");
-    patch_module(panda3d_mod, "fx");
-    patch_module(panda3d_mod, "ode");
-    patch_module(panda3d_mod, "physics");
+    
+    // Remove our hacked panda3d root from sys.modules
+    // so it can be reloaded with a proper __init__.py
+    // but all panda3d.xxx submodules are still accessible.
+    // However, another hack is required (see main).
+    PyObject* sysmodule = PyImport_ImportModule("sys");
+    Py_INCREF(sysmodule);
+    PyObject* modulesdict = PyObject_GetAttrString(sysmodule, "modules");
+    Py_INCREF(modulesdict);
+    PyDict_DelItemString(modulesdict, "panda3d");
+    Py_DECREF(modulesdict);
+    Py_DECREF(sysmodule);
 };
 
 // fwd decls
 void initaes();
 
-void setup_python()
+static void setup_python()
 {
-    // Clear sys.path.
-    PyRun_SimpleString("__import__('sys').path = ['.']");
     initaes();
 
-    // Setup some modules.
-    inject_into_sys_modules("core", "libpandaexpress");
-    // PyRun_SimpleString("__import__('sys').modules['libpandaexpress'] = __import__('core')");
-    // PyRun_SimpleString("import unicodedata"); // inject unicodedata into sys.modules
+    // Clear sys.path.
+    PyObject* sysmodule = PyImport_ImportModule("sys");
+    Py_INCREF(sysmodule);
+    
+    PyObject* pathlist = PyObject_GetAttrString(sysmodule, "path");
+    Py_DECREF(pathlist);
+    
+    PyObject* newpathlist = PyList_New(1);
+    Py_INCREF(newpathlist);
+    PyList_SET_ITEM(newpathlist, 0, Py_BuildValue("s", "."));
+    PyObject_SetAttrString(sysmodule, "path", newpathlist);
+    
+    Py_DECREF(sysmodule);
 }
 
 int main(int argc, char* argv[])
@@ -136,6 +139,16 @@ int main(int argc, char* argv[])
 
     if (niraicall_onLoadGameData())
         return 2;
+    
+    // Until panda3d directory stops mixing .py and .pyd files, we need to explicitly do this:
+    // N.B. No error checking, these modules are guaranteed to exist.
+    PyObject* panda3d_mod = PyImport_ImportModule("panda3d");
+    PyObject_SetAttrString(panda3d_mod, "interrogatedb", PyImport_ImportModule("panda3d.interrogatedb"));
+    PyObject_SetAttrString(panda3d_mod, "_direct", PyImport_ImportModule("panda3d._direct"));
+    PyObject_SetAttrString(panda3d_mod, "egg", PyImport_ImportModule("panda3d.egg"));
+    PyObject_SetAttrString(panda3d_mod, "fx", PyImport_ImportModule("panda3d.fx"));
+    PyObject_SetAttrString(panda3d_mod, "ode", PyImport_ImportModule("panda3d.ode"));
+    PyObject_SetAttrString(panda3d_mod, "physics", PyImport_ImportModule("panda3d.physics"));
 
     PyObject* res = PyImport_ImportModule("NiraiStart");
 

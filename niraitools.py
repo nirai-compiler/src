@@ -206,25 +206,20 @@ class NiraiPackager:
         return len(os.path.join(*path).rsplit('.', 1)[0].replace('\\', '/').replace('/', '.')) + 1
 
     def add_panda3d_dirs(self):
-        manglebase = self.get_mangle_base(NIRAI_ROOT, 'panda3d')
+        manglebase = self.get_mangle_base(NIRAI_ROOT, 'panda3d', 'built')
 
         def _mangler(name):
-            name = name[manglebase:]
-            return name.strip('.')
-
-        def _mangler_direct(name):
             name = name[manglebase:].strip('.')
-            parts = name.split('.')
-            if parts[1] == 'src':
-                del parts[1]
+            
+            # Required hack
+            if name == 'direct.extensions_native.extension_native_helpers':
+                name = 'extension_native_helpers'
+            
+            return name
 
-            return '.'.join(parts)
-
-        self.add_directory(os.path.join(NIRAI_ROOT, 'panda3d', 'direct'), mangler=_mangler_direct)
-        self.add_directory(os.path.join(NIRAI_ROOT, 'panda3d', 'pandac'), mangler=_mangler)
-
-        # panda3d/direct has no __init__
-        self.add_module('direct', '', compile=True, negSize=True)
+        self.add_directory(os.path.join(NIRAI_ROOT, 'panda3d', 'built', 'direct'), mangler=_mangler)
+        self.add_directory(os.path.join(NIRAI_ROOT, 'panda3d', 'built', 'pandac'), mangler=_mangler)
+        self.add_directory(os.path.join(NIRAI_ROOT, 'panda3d', 'built', 'panda3d'), mangler=_mangler)
 
     def add_default_lib(self):
         manglebase = self.get_mangle_base(NIRAI_ROOT, 'python', 'Lib')
