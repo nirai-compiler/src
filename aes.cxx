@@ -143,7 +143,10 @@ static PyMethodDef Methods[] = {
 };
 
 #ifdef BUILD_PYD
-extern "C" __declspec(dllexport)
+extern "C"
+#ifdef _WIN32
+__declspec(dllexport)
+#endif
 #endif
 
 void initaes(void)
