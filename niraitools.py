@@ -19,7 +19,6 @@ class NiraiCompilerBase:
                  includedirs=set(), libs=set(), libpath=set()):
         self.output = output
         self.outputdir = outputdir
-        self.thirdpartydir = os.path.join(THIRDPARTY_ROOT, 'win-libs-vc10')
 
         self.includedirs = includedirs.copy()
         self.includedirs.add(os.path.join(PANDA3D_ROOT, 'built', 'include'))
@@ -56,7 +55,7 @@ class NiraiCompilerBase:
         self.add_library('pythonembed')
 
     def _run_command(self, cmd):
-        p = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr)
+        p = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr, shell=True)
         v = p.wait()
 
         if v != 0:
@@ -75,6 +74,7 @@ class NiraiCompilerWindows(NiraiCompilerBase):
     def add_nirai_files(self):
         NiraiCompilerBase.add_nirai_files(self)
 
+        self.thirdpartydir = os.path.join(THIRDPARTY_ROOT, 'win-libs-vc10')
         self.libs |= set(glob.glob(os.path.join(self.builtLibs, '*.lib')))
 
         self.add_library('ws2_32')
@@ -139,49 +139,96 @@ class NiraiCompilerWindows(NiraiCompilerBase):
         self._run_command(cmd)
         
 class NiraiCompilerDarwin(NiraiCompilerBase):
+    def __init__(self, *args, **kwargs):
+        self.frameworks = kwargs.pop('frameworks', set()).copy()
+        self.frameworkDirs = kwargs.pop('frameworkDirs', set()).copy()
+        NiraiCompilerBase.__init__(self, *args, **kwargs)
+
+    def add_library(self, lib, thirdparty=False):
+        if thirdparty:
+            root = os.path.normpath(lib).split(os.sep)[0]
+            self.includedirs.add(os.path.join(self.thirdpartydir, root, 'include'))
+            
+            lib = os.path.join(self.thirdpartydir, lib)
+            self.libpath.add(os.path.join(self.thirdpartydir, root, 'lib'))
+
+        self.libs.add(lib)
+
     def add_nirai_files(self):
         NiraiCompilerBase.add_nirai_files(self)
 
-        self.add_library('freetype\\lib\\freetype', thirdparty=True)
-        self.add_library('jpeg\\lib\\jpeg', thirdparty=True)
-        self.add_library('png\\lib\\png', thirdparty=True)
-        self.add_library('ode\\lib\\ode', thirdparty=True)
-        self.add_library('squish\\lib\\squish', thirdparty=True)
-        self.add_library('tiff\\lib\\pandatiff', thirdparty=True)
-        self.add_library('tiff\\lib\\pandatiffxx', thirdparty=True)
-        self.add_library('vorbis\\lib\\ogg_static', thirdparty=True)
-        self.add_library('vorbis\\lib\\ogg', thirdparty=True)
-        self.add_library('vorbis\\lib\\vorbis', thirdparty=True)
-        self.add_library('vorbis\\lib\\vorbisenc', thirdparty=True)
-        self.add_library('vorbis\\lib\\vorbisfile', thirdparty=True)
+        self.thirdpartydir = os.path.join(THIRDPARTY_ROOT, 'darwin-libs-a')
+        self.libpath.add(self.builtLibs)
+        self.libs |= set(glob.glob(os.path.join(self.builtLibs, '*.a')))
+
+        self.add_library('crypto')
+        self.add_library('z')
+        self.add_library('ssl')
+
+        self.add_library('freetype/lib/freetype', thirdparty=True)
+        self.add_library('jpeg/lib/jpeg', thirdparty=True)
+        self.add_library('png/lib/png', thirdparty=True)
+        self.add_library('ode/lib/ode', thirdparty=True)
+        self.add_library('squish/lib/squish', thirdparty=True)
+        self.add_library('tiff/lib/pandatiff', thirdparty=True)
+        self.add_library('tiff/lib/pandatiffxx', thirdparty=True)
+        self.add_library('vorbis/lib/ogg', thirdparty=True)
+        self.add_library('vorbis/lib/vorbis', thirdparty=True)
+        self.add_library('vorbis/lib/vorbisenc', thirdparty=True)
+        self.add_library('vorbis/lib/vorbisfile', thirdparty=True)
+
+        self.frameworkDirs.add(os.path.join(PANDA3D_ROOT, 'built', 'Frameworks'))
+        self.frameworks.add('AppKit')
+        self.frameworks.add('OpenAL')
+        self.frameworks.add('OpenGL')
+        self.frameworks.add('Cg')
+        self.frameworks.add('AGL')
+        self.frameworks.add('Carbon')
+        self.frameworks.add('Cocoa')
         
     def compile(self, filename):
-        out = '%s/%s.obj' % (self.outputdir, os.path.basename(filename).rsplit('.', 1)[0])
+        print filename
+        out = '%s/%s.o' % (self.outputdir, os.path.basename(filename).rsplit('.', 1)[0])
 
         cmd = 'g++ -c -DPy_BUILD_CORE -ftemplate-depth-70 -fPIC -O2 -Wno-deprecated-declarations -pthread'
         for ic in self.includedirs:
             cmd += ' -I"%s"' % ic
 
-        cmd += ' -o "%s"' % (out, filename)
+        cmd += ' -o "%s" "%s"' % (out, filename)
 
         self._run_command(cmd)
         self._built.add(out)
         
     def link(self):
-        cmd = 'g++ -shared -o %s/%s' % (self.outputdir, self.output)
+        cmd = 'g++ -o %s/%s' % (self.outputdir, self.output)
         
         for path in self.libpath:
             cmd += ' -L"%s"' % path
 
+        for path in self.frameworkDirs:
+            cmd += ' -F"%s"' % path
+
+        for framework in self.frameworks:
+            cmd += ' -framework %s' % framework
+
         for lib in self.libs:
-            cmd += ' -l%s' % os.path.basename(lib)
+            lib = os.path.basename(lib)
+            if lib.startswith('lib'):
+                lib = lib[3:]
+
+            if lib.endswith('.a'):
+                lib = lib[:-2]
+
+            cmd += ' -l%s' % lib
             
         for obj in self._built:
             cmd += ' "%s"' % obj
 
+        cmd += ' -dylib_file /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib'
+        cmd += ':/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib'
         self._run_command(cmd)
 
-class NiraiPackager:
+class NiraiPackager: 
     HEADER = 'NRI\n'
 
     def __init__(self, outfile):
@@ -296,7 +343,7 @@ class NiraiPackager:
 
     def process_modules(self):
         # Pure virtual
-        raise NotImplementedError('process_datagram')
+        raise NotImplementedError('process_modules')
 
     def get_file_contents(self, filename, encrypt=False):
         with open(filename, 'rb') as f:

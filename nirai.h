@@ -1,6 +1,9 @@
 #pragma once
 
+#ifdef WIN32
 #include "windows.h"
+#endif
+
 #include <pandabase.h>
 
 #undef NDEBUG
