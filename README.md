@@ -10,4 +10,4 @@ Nirai is meant to be used for compiling the source code of Panda3D games for pro
 
 A sample Nirai project can be found [here](https://github.com/nirai-compiler/sample-project)
 
-Currently, Nirai has been tested only on Windows. Support for Linux and Mac is planned.
+Currently, Nirai has been tested only on Windows and Mac. Support for Linux is planned.
