@@ -14,7 +14,7 @@ PYTHON_ROOT = os.path.join(NIRAI_ROOT, 'python')
 PANDA3D_ROOT = os.path.join(NIRAI_ROOT, 'panda3d')
 THIRDPARTY_ROOT = os.path.join(PANDA3D_ROOT, 'thirdparty')
 
-class NiraiCompiler:
+class NiraiCompilerBase:
     def __init__(self, output, outputdir='built',
                  includedirs=set(), libs=set(), libpath=set()):
         self.output = output
@@ -35,7 +35,7 @@ class NiraiCompiler:
         self.libpath.add(os.path.join(NIRAI_ROOT, 'python'))
 
         self.sources = set()
-        self.__built = set()
+        self._built = set()
 
     def add_source(self, filename):
         self.sources.add(filename)
@@ -47,15 +47,35 @@ class NiraiCompiler:
             
             lib = os.path.join(self.thirdpartydir, lib)
 
-        self.libs.add(lib + '.lib')
+        self.libs.add(lib)
 
     def add_nirai_files(self):
         for filename in ('aes.cxx', 'main.cxx'):
             self.add_source(os.path.join(SOURCE_ROOT, filename))
+            
+        self.add_library('pythonembed')
+
+    def _run_command(self, cmd):
+        p = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr)
+        v = p.wait()
+
+        if v != 0:
+            print 'The following command returned non-zero value (%d): %s' % (v, cmd[:100] + '...')
+            sys.exit(1)
+
+    def run(self):
+        print 'Compiling CXX codes...'
+        for filename in self.sources:
+            self.compile(filename)
+
+        print 'Linking...'
+        self.link()
+
+class NiraiCompilerWindows(NiraiCompilerBase):
+    def add_nirai_files(self):
+        NiraiCompilerBase.add_nirai_files(self)
 
         self.libs |= set(glob.glob(os.path.join(self.builtLibs, '*.lib')))
-
-        self.add_library('pythonembed')
 
         self.add_library('ws2_32')
         self.add_library('shell32')
@@ -70,35 +90,27 @@ class NiraiCompiler:
         self.add_library('opengl32')
         self.add_library('imm32')
         self.add_library('crypt32')
-
+        
+        self.add_library('fftw\\lib\\fftw', thirdparty=True)
+        self.add_library('fftw\\lib\\rfftw', thirdparty=True)
+        self.add_library('freetype\\lib\\freetype', thirdparty=True)
+        self.add_library('jpeg\\lib\\jpeg-static', thirdparty=True)
         self.add_library('nvidiacg\\lib\\cgGL', thirdparty=True)
         self.add_library('nvidiacg\\lib\\cgD3D9', thirdparty=True)
         self.add_library('nvidiacg\\lib\\cg', thirdparty=True)
-        self.add_library('squish\\lib\\squish', thirdparty=True)
-        self.add_library('freetype\\lib\\freetype', thirdparty=True)
-        self.add_library('vorbis\\lib\\libogg_static', thirdparty=True)
-        self.add_library('vorbis\\lib\\libvorbis_static', thirdparty=True)
-        self.add_library('vorbis\\lib\\libvorbisfile_static', thirdparty=True)
         self.add_library('ode\\lib\\ode_single', thirdparty=True)
         self.add_library('openal\\lib\\OpenAL32', thirdparty=True)
         self.add_library('openssl\\lib\\libpandaeay', thirdparty=True)
         self.add_library('openssl\\lib\\libpandassl', thirdparty=True)
         self.add_library('png\\lib\\libpng_static', thirdparty=True)
-        self.add_library('jpeg\\lib\\jpeg-static', thirdparty=True)
+        self.add_library('squish\\lib\\squish', thirdparty=True)
         self.add_library('tiff\\lib\\libtiff', thirdparty=True)
-        self.add_library('fftw\\lib\\fftw', thirdparty=True)
-        self.add_library('fftw\\lib\\rfftw', thirdparty=True)
         self.add_library('zlib\\lib\\zlibstatic', thirdparty=True)
+        self.add_library('vorbis\\lib\\libogg_static', thirdparty=True)
+        self.add_library('vorbis\\lib\\libvorbis_static', thirdparty=True)
+        self.add_library('vorbis\\lib\\libvorbisfile_static', thirdparty=True)
 
-    def __run_command(self, cmd):
-        p = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr)
-        v = p.wait()
-
-        if v != 0:
-            print 'The following command returned non-zero value (%d): %s' % (v, cmd[:100] + '...')
-            sys.exit(1)
-
-    def __compile(self, filename):
+    def compile(self, filename):
         out = '%s/%s.obj' % (self.outputdir, os.path.basename(filename).rsplit('.', 1)[0])
 
         cmd = 'cl /c /GF /MP4 /DPy_BUILD_CORE /DNTDDI_VERSION=0x0501 /wd4996 /wd4275 /wd4267 /wd4101 /wd4273 /nologo /EHsc /MD /Zi /O2'
@@ -107,30 +119,67 @@ class NiraiCompiler:
 
         cmd += ' /Fo%s "%s"' % (out, filename)
 
-        self.__run_command(cmd)
-        self.__built.add(out)
+        self._run_command(cmd)
+        self._built.add(out)
 
-    def __link(self):
+    def link(self):
         cmd = 'link /LTCG /LTCG:STATUS /nologo /out:%s/%s' % (self.outputdir, self.output)
-        for obj in self.__built:
+        for obj in self._built:
             cmd += ' "%s"' % obj
 
         for lib in self.libs:
+            if not lib.endswith('.lib'):
+                lib += '.lib'
             cmd += ' "%s"' % lib
 
         for path in self.libpath:
             cmd += ' /LIBPATH:"%s"' % path
 
         cmd += ' /RELEASE /nodefaultlib:python27.lib /nodefaultlib:libcmt /ignore:4049 /ignore:4006 /ignore:4221'
-        self.__run_command(cmd)
+        self._run_command(cmd)
+        
+class NiraiCompilerDarwin(NiraiCompilerBase):
+    def add_nirai_files(self):
+        NiraiCompilerBase.add_nirai_files(self)
 
-    def run(self):
-        print 'Compiling CXX codes...'
-        for filename in self.sources:
-            self.__compile(filename)
+        self.add_library('freetype\\lib\\freetype', thirdparty=True)
+        self.add_library('jpeg\\lib\\jpeg', thirdparty=True)
+        self.add_library('png\\lib\\png', thirdparty=True)
+        self.add_library('ode\\lib\\ode', thirdparty=True)
+        self.add_library('squish\\lib\\squish', thirdparty=True)
+        self.add_library('tiff\\lib\\pandatiff', thirdparty=True)
+        self.add_library('tiff\\lib\\pandatiffxx', thirdparty=True)
+        self.add_library('vorbis\\lib\\ogg_static', thirdparty=True)
+        self.add_library('vorbis\\lib\\ogg', thirdparty=True)
+        self.add_library('vorbis\\lib\\vorbis', thirdparty=True)
+        self.add_library('vorbis\\lib\\vorbisenc', thirdparty=True)
+        self.add_library('vorbis\\lib\\vorbisfile', thirdparty=True)
+        
+    def compile(self, filename):
+        out = '%s/%s.obj' % (self.outputdir, os.path.basename(filename).rsplit('.', 1)[0])
 
-        print 'Linking...'
-        self.__link()
+        cmd = 'g++ -c -DPy_BUILD_CORE -ftemplate-depth-70 -fPIC -O2 -Wno-deprecated-declarations -pthread'
+        for ic in self.includedirs:
+            cmd += ' -I"%s"' % ic
+
+        cmd += ' -o "%s"' % (out, filename)
+
+        self._run_command(cmd)
+        self._built.add(out)
+        
+    def link(self):
+        cmd = 'g++ -shared -o %s/%s' % (self.outputdir, self.output)
+        
+        for path in self.libpath:
+            cmd += ' -L"%s"' % path
+
+        for lib in self.libs:
+            cmd += ' -l%s' % os.path.basename(lib)
+            
+        for obj in self._built:
+            cmd += ' "%s"' % obj
+
+        self._run_command(cmd)
 
 class NiraiPackager:
     HEADER = 'NRI\n'
@@ -259,3 +308,14 @@ class NiraiPackager:
             data = iv + key + aes.encrypt(data, key, iv)
 
         return data
+
+if sys.platform.startswith('win'):
+    NiraiCompiler = NiraiCompilerWindows
+    
+elif sys.platform == 'darwin':
+    NiraiCompiler = NiraiCompilerDarwin
+    
+else:
+    class NiraiCompiler:
+        def __init__(self, *args, **kw):
+            raise RuntimeError('Attempted to use NiraiCompiler on unsupported platform: %s' % sys.platform)
