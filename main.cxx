@@ -90,7 +90,7 @@ static void start_nirai()
     initfx();
     initode();
     initphysics();
-    
+
     // Remove our hacked panda3d root from sys.modules
     // so it can be reloaded with a proper __init__.py
     // but all panda3d.xxx submodules are still accessible.
@@ -114,20 +114,21 @@ static void setup_python()
     // Clear sys.path.
     PyObject* sysmodule = PyImport_ImportModule("sys");
     Py_INCREF(sysmodule);
-    
+
     PyObject* pathlist = PyObject_GetAttrString(sysmodule, "path");
     Py_DECREF(pathlist);
-    
+
     PyObject* newpathlist = PyList_New(1);
     Py_INCREF(newpathlist);
     PyList_SET_ITEM(newpathlist, 0, Py_BuildValue("s", "."));
     PyObject_SetAttrString(sysmodule, "path", newpathlist);
-    
+
     Py_DECREF(sysmodule);
 }
 
 int main(int argc, char* argv[])
 {
+
     if (niraicall_onPreStart(argc, argv))
         return 1;
 
@@ -145,7 +146,7 @@ int main(int argc, char* argv[])
 
     if (niraicall_onLoadGameData())
         return 2;
-    
+
     // Until panda3d directory stops mixing .py and .pyd files, we need to explicitly do this:
     // N.B. No error checking, these modules are guaranteed to exist.
     PyObject* panda3d_mod = PyImport_ImportModule("panda3d");
