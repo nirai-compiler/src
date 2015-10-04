@@ -164,6 +164,7 @@ class NiraiCompilerDarwin(NiraiCompilerBase):
         self.add_library('crypto')
         self.add_library('z')
         self.add_library('ssl')
+        self.add_library('python')
 
         self.add_library('freetype/lib/freetype', thirdparty=True)
         self.add_library('jpeg/lib/jpeg', thirdparty=True)
