@@ -298,11 +298,18 @@ class NiraiPackager:
 
         _recurse_dir(dir)
 
-    def get_mangle_base(self, *path):
-        return len(os.path.join(*path).rsplit('.', 1)[0].replace('\\', '/').replace('/', '.')) + 1
+    def get_mangle_base(self, path, relative=True):
+        abs = os.path.abspath(path)
+        norm = os.path.normpath(abs)
+        if relative:
+            rel = os.path.relpath(norm)
+            
+        else:
+            rel = norm
+        return len(rel) + len(os.sep)
 
     def add_panda3d_dirs(self):
-        manglebase = self.get_mangle_base(NIRAI_ROOT, 'panda3d', 'built')
+        manglebase = self.get_mangle_base(os.path.join(NIRAI_ROOT, 'panda3d', 'built'),  relative=False)
 
         def _mangler(name):
             name = name[manglebase:].strip('.')
@@ -318,7 +325,7 @@ class NiraiPackager:
         self.add_directory(os.path.join(NIRAI_ROOT, 'panda3d', 'built', 'panda3d'), mangler=_mangler)
 
     def add_default_lib(self):
-        manglebase = self.get_mangle_base(NIRAI_ROOT, 'python', 'Lib')
+        manglebase = self.get_mangle_base(os.path.join(NIRAI_ROOT, 'python', 'Lib'),  relative=False)
 
         def _mangler(name):
             name = name[manglebase:]
