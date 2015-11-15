@@ -1,6 +1,6 @@
 assert not __debug__ # Run with -OO
 
-from panda3d.core import *
+#from panda3d.core import *
 
 from collections import OrderedDict
 import subprocess, glob, sys, os
