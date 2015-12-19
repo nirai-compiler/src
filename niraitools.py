@@ -29,9 +29,9 @@ class NiraiCompilerBase:
 
         self.libpath = libpath.copy()
 
-        self.builtLibs = os.path.join(NIRAI_ROOT, 'panda3d', 'built', 'lib')
+        self.builtLibs = os.path.join(PANDA3D_ROOT, 'built', 'lib')
         self.libpath.add(self.builtLibs)
-        self.libpath.add(os.path.join(NIRAI_ROOT, 'python'))
+        self.libpath.add(PYTHON_ROOT)
 
         self.sources = set()
         self._built = set()
