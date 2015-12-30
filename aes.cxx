@@ -30,21 +30,25 @@ int AES_encrypt(unsigned char* data, int size, unsigned char* key, unsigned char
     int ciphertext_len, len;
 
     if (!(ctx = EVP_CIPHER_CTX_new()))
-        return _handle_error();
+        goto error;
 
     if (EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key, iv) != 1)
-        return _handle_error();
+        goto error;
 
     if (EVP_EncryptUpdate(ctx, ciphertext, &len, data, size) != 1)
-        return _handle_error();
+        goto error;
 
     ciphertext_len = len;
 
     if (EVP_EncryptFinal_ex(ctx, &ciphertext[len], &len) != 1)
-        return _handle_error();
+        goto error;
 
     EVP_CIPHER_CTX_free(ctx);
     return ciphertext_len + len;
+    
+error:
+    if (ctx) EVP_CIPHER_CTX_free(ctx);
+    return _handle_error();
 }
 
 int AES_decrypt(unsigned char* data, int size, unsigned char* key, unsigned char* iv, unsigned char* plaintext)
@@ -53,21 +57,25 @@ int AES_decrypt(unsigned char* data, int size, unsigned char* key, unsigned char
     int plaintext_len, len;
 
     if (!(ctx = EVP_CIPHER_CTX_new()))
-        return _handle_error();
+        goto error;
 
     if (EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key, iv) != 1)
-        return _handle_error();
+        goto error;
 
     if (EVP_DecryptUpdate(ctx, plaintext, &len, data, size) != 1)
-        return _handle_error();
+        goto error;
 
     plaintext_len = len;
 
-    if(EVP_DecryptFinal_ex(ctx, plaintext + len, &len) != 1)
-        return _handle_error();
+    if (EVP_DecryptFinal_ex(ctx, plaintext + len, &len) != 1)
+        goto error;
 
     EVP_CIPHER_CTX_free(ctx);
     return plaintext_len + len;
+ 
+error:
+    if (ctx) EVP_CIPHER_CTX_free(ctx);
+    return _handle_error();
 }
 
 static PyObject* py_aes_encrypt(PyObject* self, PyObject* args)
@@ -93,6 +101,7 @@ static PyObject* py_aes_encrypt(PyObject* self, PyObject* args)
     int ciphertext_len = AES_encrypt(data, size, key, iv, ciphertext);
     if (ciphertext_len == -1)
     {
+        delete[] ciphertext;
         Py_INCREF(Py_None);
         return Py_None;
     }
@@ -126,6 +135,7 @@ static PyObject* py_aes_decrypt(PyObject* self, PyObject* args)
     int plaintext_len = AES_decrypt(data, size, key, iv, plaintext);
     if (plaintext_len == -1)
     {
+        delete[] plaintext;
         Py_INCREF(Py_None);
         return Py_None;
     }
