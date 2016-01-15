@@ -309,7 +309,7 @@ class NiraiPackager:
         return len(rel) + len(os.sep)
 
     def add_panda3d_dirs(self):
-        manglebase = self.get_mangle_base(os.path.join(NIRAI_ROOT, 'panda3d', 'built'),  relative=False)
+        manglebase = self.get_mangle_base(os.path.join(PANDA3D_ROOT, 'built'),  relative=False)
 
         def _mangler(name):
             name = name[manglebase:].strip('.')
@@ -320,18 +320,18 @@ class NiraiPackager:
             
             return name
 
-        self.add_directory(os.path.join(NIRAI_ROOT, 'panda3d', 'built', 'direct'), mangler=_mangler)
-        self.add_directory(os.path.join(NIRAI_ROOT, 'panda3d', 'built', 'pandac'), mangler=_mangler)
-        self.add_directory(os.path.join(NIRAI_ROOT, 'panda3d', 'built', 'panda3d'), mangler=_mangler)
+        self.add_directory(os.path.join(PANDA3D_ROOT, 'built', 'direct'), mangler=_mangler)
+        self.add_directory(os.path.join(PANDA3D_ROOT, 'built', 'pandac'), mangler=_mangler)
+        self.add_directory(os.path.join(PANDA3D_ROOT, 'built', 'panda3d'), mangler=_mangler)
 
     def add_default_lib(self):
-        manglebase = self.get_mangle_base(os.path.join(NIRAI_ROOT, 'python', 'Lib'),  relative=False)
+        manglebase = self.get_mangle_base(os.path.join(PYTHON_ROOT, 'Lib'),  relative=False)
 
         def _mangler(name):
             name = name[manglebase:]
             return name.strip('.')
 
-        self.add_directory(os.path.join(NIRAI_ROOT, 'python', 'Lib'), mangler=_mangler)
+        self.add_directory(os.path.join(PYTHON_ROOT, 'Lib'), mangler=_mangler)
 
     def write_out(self):
         f = open(self.outfile, 'wb')
