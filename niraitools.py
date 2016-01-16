@@ -113,7 +113,7 @@ class NiraiCompilerWindows(NiraiCompilerBase):
     def compile(self, filename):
         out = '%s/%s.obj' % (self.outputdir, os.path.basename(filename).rsplit('.', 1)[0])
 
-        cmd = 'cl /c /GF /MP4 /DPy_BUILD_CORE /DNTDDI_VERSION=0x0501 /wd4996 /wd4275 /wd4267 /wd4101 /wd4273 /nologo /EHsc /MD /Zi /O2'
+        cmd = 'cl /c /GF /MP4 /DPy_BUILD_CORE /DLINK_ALL_STATIC /DNTDDI_VERSION=0x0501 /wd4996 /wd4275 /wd4267 /wd4101 /wd4273 /nologo /EHsc /MD /Zi /O2'
         for ic in self.includedirs:
             cmd += ' /I"%s"' % ic
 
@@ -190,7 +190,7 @@ class NiraiCompilerDarwin(NiraiCompilerBase):
         print filename
         out = '%s/%s.o' % (self.outputdir, os.path.basename(filename).rsplit('.', 1)[0])
 
-        cmd = 'g++ -c -DPy_BUILD_CORE -ftemplate-depth-70 -fPIC -O2 -Wno-deprecated-declarations -pthread'
+        cmd = 'g++ -c -DPy_BUILD_CORE -DLINK_ALL_STATIC -ftemplate-depth-70 -fPIC -O2 -Wno-deprecated-declarations -pthread'
         for ic in self.includedirs:
             cmd += ' -I"%s"' % ic
 
