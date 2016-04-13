@@ -32,6 +32,8 @@ _P3D_INIT(interrogatedb)
 // P3D CXX fwd decls.
 #ifdef WIN32
 void init_libwgldisplay();
+void init_libwindisplay();
+void init_libtinydisplay();
 #elif __APPLE__
 void init_libcocoadisplay();
 #endif
@@ -73,6 +75,8 @@ static void start_nirai()
     // Setup the display.
 #ifdef WIN32
     init_libwgldisplay();
+    init_libwindisplay();
+    init_libtinydisplay();
 #elif __APPLE__
     init_libcocoadisplay();
 #endif
@@ -128,7 +132,6 @@ static void setup_python()
 
 int main(int argc, char* argv[])
 {
-
     if (niraicall_onPreStart(argc, argv))
         return 1;
 
