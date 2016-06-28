@@ -8,7 +8,6 @@ AudioManager* Create_OpenALAudioManager();
 void* load_openal()
 {
     init_libOpenALAudio();
-    AudioManager::register_AudioManager_creator(Create_OpenALAudioManager);
     return NULL;
 }
 
@@ -39,6 +38,7 @@ void init_libcocoadisplay();
 #endif
 void init_libmovies();
 void init_libpnmimagetypes();
+void init_libmotiontrail();
 
 static PyMethodDef NiraiMethods[] = {{NULL, NULL, 0}};
 
@@ -86,6 +86,9 @@ static void start_nirai()
 
     // Setup pnmimagetypes.
     init_libpnmimagetypes();
+
+    // Setup MotionTrail
+    init_libmotiontrail();
 
     // Init other modules.
     initinterrogatedb();
