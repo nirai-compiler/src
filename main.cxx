@@ -21,8 +21,8 @@ static void* __ = load_openal();
 #define _P3D_INIT(MODULE) extern "C" void init##MODULE ();
 #endif
 
-_P3D_INIT(_core)
-_P3D_INIT(_direct)
+_P3D_INIT(core)
+_P3D_INIT(direct)
 _P3D_INIT(fx)
 _P3D_INIT(egg)
 _P3D_INIT(ode)
@@ -70,7 +70,7 @@ static void start_nirai()
     PyObject* panda3d_mod = Py_InitModule("panda3d", NiraiMethods);
     Py_INCREF(panda3d_mod);
 
-    init_core();
+    initcore();
 
     // Setup the display.
 #ifdef WIN32
@@ -89,7 +89,7 @@ static void start_nirai()
 
     // Init other modules.
     initinterrogatedb();
-    init_direct();
+    initdirect();
     initegg();
     initfx();
     initode();
