@@ -154,7 +154,7 @@ int main(int argc, char* argv[])
     // N.B. No error checking, these modules are guaranteed to exist.
     PyObject* panda3d_mod = PyImport_ImportModule("panda3d");
     PyObject_SetAttrString(panda3d_mod, "interrogatedb", PyImport_ImportModule("panda3d.interrogatedb"));
-    PyObject_SetAttrString(panda3d_mod, "_direct", PyImport_ImportModule("panda3d._direct"));
+    PyObject_SetAttrString(panda3d_mod, "direct", PyImport_ImportModule("panda3d.direct"));
     PyObject_SetAttrString(panda3d_mod, "egg", PyImport_ImportModule("panda3d.egg"));
     PyObject_SetAttrString(panda3d_mod, "fx", PyImport_ImportModule("panda3d.fx"));
     PyObject_SetAttrString(panda3d_mod, "ode", PyImport_ImportModule("panda3d.ode"));
