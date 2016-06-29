@@ -313,11 +313,6 @@ class NiraiPackager:
 
         def _mangler(name):
             name = name[manglebase:].strip('.')
-            
-            # Required hack
-            if name == 'direct.extensions_native.extension_native_helpers':
-                name = 'extension_native_helpers'
-            
             return name
 
         self.add_directory(os.path.join(PANDA3D_ROOT, 'built', 'direct'), mangler=_mangler)
