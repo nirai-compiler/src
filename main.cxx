@@ -156,6 +156,7 @@ int main(int argc, char* argv[])
     // Until panda3d directory stops mixing .py and .pyd files, we need to explicitly do this:
     // N.B. No error checking, these modules are guaranteed to exist.
     PyObject* panda3d_mod = PyImport_ImportModule("panda3d");
+    PyObject_SetAttrString(panda3d_mod, "core", PyImport_ImportModule("panda3d.core"));
     PyObject_SetAttrString(panda3d_mod, "interrogatedb", PyImport_ImportModule("panda3d.interrogatedb"));
     PyObject_SetAttrString(panda3d_mod, "direct", PyImport_ImportModule("panda3d.direct"));
     PyObject_SetAttrString(panda3d_mod, "egg", PyImport_ImportModule("panda3d.egg"));
