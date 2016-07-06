@@ -4,6 +4,7 @@ assert not __debug__ # Run with -OO
 
 from collections import OrderedDict
 import subprocess, glob, sys, os
+from termcolor import colored
 
 import niraimarshal
 import aes
@@ -59,15 +60,15 @@ class NiraiCompilerBase:
         v = p.wait()
 
         if v != 0:
-            print 'The following command returned non-zero value (%d): %s' % (v, cmd[:100] + '...')
+            print colored('The following command returned non-zero value (%d): %s' % (v, cmd[:100] + '...'), 'red')
             sys.exit(1)
 
     def run(self):
-        print 'Compiling CXX codes...'
+        print colored('Compiling CXX codes...', 'magenta')
         for filename in self.sources:
             self.compile(filename)
 
-        print 'Linking...'
+        print colored('Linking...', 'cyan')
         self.link()
 
 class NiraiCompilerWindows(NiraiCompilerBase):
@@ -90,7 +91,7 @@ class NiraiCompilerWindows(NiraiCompilerBase):
         self.add_library('opengl32')
         self.add_library('imm32')
         self.add_library('crypt32')
-        
+
         self.add_library('fftw\\lib\\fftw', thirdparty=True)
         self.add_library('fftw\\lib\\rfftw', thirdparty=True)
         self.add_library('freetype\\lib\\freetype', thirdparty=True)
@@ -137,7 +138,7 @@ class NiraiCompilerWindows(NiraiCompilerBase):
 
         cmd += ' /RELEASE /nodefaultlib:python27.lib /nodefaultlib:libcmt /ignore:4049 /ignore:4006 /ignore:4221'
         self._run_command(cmd)
-        
+
 class NiraiCompilerDarwin(NiraiCompilerBase):
     def __init__(self, *args, **kwargs):
         self.frameworks = kwargs.pop('frameworks', set()).copy()
@@ -148,7 +149,7 @@ class NiraiCompilerDarwin(NiraiCompilerBase):
         if thirdparty:
             root = os.path.normpath(lib).split(os.sep)[0]
             self.includedirs.add(os.path.join(self.thirdpartydir, root, 'include'))
-            
+
             lib = os.path.join(self.thirdpartydir, lib)
             self.libpath.add(os.path.join(self.thirdpartydir, root, 'lib'))
 
@@ -185,11 +186,12 @@ class NiraiCompilerDarwin(NiraiCompilerBase):
         self.frameworks.add('AGL')
         self.frameworks.add('Carbon')
         self.frameworks.add('Cocoa')
-        
+
     def compile(self, filename):
-        print filename
+        print colored('Compiling...', 'cyan'), colored(filename, 'yellow')
         out = '%s/%s.o' % (self.outputdir, os.path.basename(filename).rsplit('.', 1)[0])
 
+        #cmd = 'g++ -g -c -DPy_BUILD_CORE -DLINK_ALL_STATIC -ftemplate-depth-70 -fPIC -O2 -Wno-deprecated-declarations -pthread'
         cmd = 'g++ -c -DPy_BUILD_CORE -DLINK_ALL_STATIC -ftemplate-depth-70 -fPIC -O2 -Wno-deprecated-declarations -pthread'
         for ic in self.includedirs:
             cmd += ' -I"%s"' % ic
@@ -198,10 +200,11 @@ class NiraiCompilerDarwin(NiraiCompilerBase):
 
         self._run_command(cmd)
         self._built.add(out)
-        
+
     def link(self):
+        #cmd = 'g++ -g -o %s/%s' % (self.outputdir, self.output)
         cmd = 'g++ -o %s/%s' % (self.outputdir, self.output)
-        
+
         for path in self.libpath:
             cmd += ' -L"%s"' % path
 
@@ -254,7 +257,7 @@ class NiraiPackager:
             data = self.compile_module(name, data)
 
         except:
-            print 'WARNING: Failed to compile', filename
+            print colored('WARNING: Failed to compile %s' % filename, 'red')
             return '', ('', 0)
 
         size = len(data) * (-1 if pkg else 1)
@@ -275,14 +278,14 @@ class NiraiPackager:
         self.modules[moduleName] = (data, size)
 
     def add_file(self, filename, mangler=None):
-        print 'Adding file', filename
+        print colored('Adding file','cyan'), colored(filename, 'yellow')
         moduleName, (data, size) = self.__read_file(filename, mangler)
         if moduleName:
             moduleName = os.path.basename(filename).rsplit('.', 1)[0]
             self.add_module(moduleName, data, size)
 
     def add_directory(self, dir, mangler=None):
-        print 'Adding directory', dir
+        print colored('Adding directory ', 'cyan'), colored(dir, 'yellow')
 
         def _recurse_dir(dir):
             for f in os.listdir(dir):
