@@ -60,7 +60,7 @@ class NiraiCompilerBase:
         v = p.wait()
 
         if v != 0:
-            print colored('The following command returned non-zero value (%d): %s' % (v, cmd[:100] + '...'), 'red')
+            print colored('The following command returned non-zero value (%d): %s' % (v, cmd), 'red')
             sys.exit(1)
 
     def run(self):
@@ -231,6 +231,104 @@ class NiraiCompilerDarwin(NiraiCompilerBase):
         cmd += ':/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib'
         self._run_command(cmd)
 
+class NiraiCompilerLinux(NiraiCompilerBase):
+    def __init__(self, *args, **kwargs):
+        NiraiCompilerBase.__init__(self, *args, **kwargs)
+        self.libs = list(self.libs)
+    
+    def add_library(self, lib):
+        self.libs.append(lib)
+        
+    def add_panda3d_lib(self, lib):
+        self.add_library(os.path.join(self.builtLibs, lib))
+
+    def add_nirai_files(self):
+        NiraiCompilerBase.add_nirai_files(self)
+
+        self.libpath.add(self.builtLibs)
+
+        self.add_panda3d_lib('_panda3d_core')
+        self.add_panda3d_lib('_panda3d_interrogatedb')
+        self.add_panda3d_lib('_panda3d_direct')
+        self.add_panda3d_lib('_panda3d_fx')
+        self.add_panda3d_lib('_panda3d_physics')
+        self.add_panda3d_lib('_panda3d_ode')
+        self.add_panda3d_lib('_panda3d_egg')
+        
+        self.add_panda3d_lib('p3framework')
+        self.add_panda3d_lib('p3tinydisplay')
+        self.add_panda3d_lib('p3direct')
+        self.add_panda3d_lib('p3openal_audio')
+        self.add_panda3d_lib('p3dtool')
+        self.add_panda3d_lib('p3dtoolconfig')
+        self.add_panda3d_lib('p3interrogatedb')
+        self.add_panda3d_lib('pandagl')
+        self.add_panda3d_lib('pandaphysics')
+        self.add_panda3d_lib('pandaode')
+        self.add_panda3d_lib('pandaegg')
+        self.add_panda3d_lib('panda')
+        self.add_panda3d_lib('pandaexpress')
+        self.add_panda3d_lib('pandafx')
+
+        self.add_library('openal')
+        self.add_library('ode')
+        self.add_library('ogg')
+        self.add_library('vorbisfile')
+        self.add_library('vorbis')
+        self.add_library('Cg')
+        self.add_library('CgGL')
+        self.add_library('tiff')
+        self.add_library('jpeg')
+        self.add_library('png')
+        self.add_library('X11')
+        self.add_library('Xrandr')
+        self.add_library('Xxf86dga')
+        self.add_library('Xcursor')
+        self.add_library('GL')
+        self.add_library('rfftw')
+        self.add_library('fftw')
+        self.add_library('freetype')
+        self.add_library('ssl')
+        self.add_library('crypto')
+        self.add_library('z')
+        self.add_library('dl')
+        self.add_library('pthread')
+        self.add_library('util')
+        
+    def compile(self, filename):
+        print filename
+        out = '%s/%s.o' % (self.outputdir, os.path.basename(filename).rsplit('.', 1)[0])
+
+        cmd = 'g++ -c -DPy_BUILD_CORE -DLINK_ALL_STATIC -ftemplate-depth-70 -fPIC -O2 -Wno-deprecated-declarations -pthread'
+        for ic in self.includedirs:
+            cmd += ' -I"%s"' % ic
+
+        cmd += ' -o "%s" "%s"' % (out, filename)
+
+        self._run_command(cmd)
+        self._built.add(out)
+        
+    def link(self):
+        cmd = 'g++ -o %s/%s' % (self.outputdir, self.output)
+        
+        for path in self.libpath:
+            cmd += ' -L"%s"' % path
+
+        for obj in self._built:
+            cmd += ' "%s"' % obj
+
+        for lib in self.libs:
+            lib = os.path.basename(lib)
+            if lib.startswith('lib'):
+                lib = lib[3:]
+
+            if lib.endswith('.a'):
+                lib = lib[:-2]
+
+            cmd += ' -l%s' % lib
+
+        self._run_command(cmd)
+
 class NiraiPackager: 
     HEADER = 'NRI\n'
 
@@ -363,10 +461,13 @@ class NiraiPackager:
 
 if sys.platform.startswith('win'):
     NiraiCompiler = NiraiCompilerWindows
-    
+
 elif sys.platform == 'darwin':
     NiraiCompiler = NiraiCompilerDarwin
-    
+
+elif sys.platform == 'linux2':
+    NiraiCompiler = NiraiCompilerLinux
+
 else:
     class NiraiCompiler:
         def __init__(self, *args, **kw):

@@ -35,6 +35,8 @@ void init_libwindisplay();
 void init_libtinydisplay();
 #elif __APPLE__
 void init_libcocoadisplay();
+#elif __linux
+void init_libglxdisplay();
 #endif
 void init_libmovies();
 void init_libpnmimagetypes();
@@ -79,6 +81,8 @@ static void start_nirai()
     init_libtinydisplay();
 #elif __APPLE__
     init_libcocoadisplay();
+#elif __linux
+    init_libglxdisplay();
 #endif
 
     // Setup audio.
