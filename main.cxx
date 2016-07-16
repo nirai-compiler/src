@@ -30,6 +30,7 @@ _P3D_INIT(interrogatedb)
 
 // P3D CXX fwd decls.
 #ifdef WIN32
+void init_libpandadx9();
 void init_libwgldisplay();
 void init_libwindisplay();
 void init_libtinydisplay();
@@ -76,6 +77,7 @@ static void start_nirai()
 
     // Setup the display.
 #ifdef WIN32
+    init_libpandadx9();
     init_libwgldisplay();
     init_libwindisplay();
     init_libtinydisplay();
