@@ -18,15 +18,20 @@ The following instructions will explain how to compile the Nirai [Sample Project
 
 ## Before we begin
 
-Download the following projects linked below and place them in the expected folder structure. If you do not have a folder named *Nirai*, make one somewhere on your computer. I personally have mine on my mac at `/Users/Michael/Nirai/`.
+Download the following projects linked below and place them in the expected folder structure. If you do not have a folder named *Nirai*, make one somewhere on your computer.
 
 Expected folder structure:
 
 > Nirai/
+
 > [Nirai/panda3d/](https://github.com/nirai-compiler/panda3d)
+
 > [Nirai/panda3d/thirdparty/](https://github.com/nirai-compiler/thirdparty)
+
 > [Nirai/src/](https://github.com/nirai-compiler/src/)
+
 > [Nirai/sample-project/](https://github.com/nirai-compiler/sample-project)
+
 > [Nirai/python/](https://github.com/nirai-compiler/python/)
 
 You will need to have *CMake* in order to build *Nirai's Python*. You can obtain a copy of *CMake* via your local OS' package manager (such as *Brew*), or obtain it directly from their website [here](https://cmake.org/download/).
