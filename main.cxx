@@ -3,6 +3,9 @@
 #include "graphicsPipeSelection.h"
 #include "config_openalAudio.h"
 
+#include "pythonThread.h"
+#include "pythonTask.h"
+
 AudioManager* Create_OpenALAudioManager();
 // Register OpenAL audio (like setup_env, must be in static time).
 void* load_openal()
@@ -45,16 +48,16 @@ void init_libmotiontrail();
 static PyMethodDef NiraiMethods[] = {{NULL, NULL, 0}};
 
 static void inject_into_sys_modules(const std::string& module, const std::string& alias)
-{    
+{
     PyObject* sysmodule = PyImport_ImportModule("sys");
     Py_INCREF(sysmodule);
     PyObject* modulesdict = PyObject_GetAttrString(sysmodule, "modules");
     Py_INCREF(modulesdict);
-    
+
     PyObject* mod = PyImport_ImportModule(module.c_str());
     Py_INCREF(mod);
     PyDict_SetItemString(modulesdict, alias.c_str(), mod);
-    
+
     Py_DECREF(modulesdict);
     Py_DECREF(sysmodule);
 }
@@ -71,6 +74,10 @@ static void start_nirai()
     // Init Panda3D.
     PyObject* panda3d_mod = Py_InitModule("panda3d", NiraiMethods);
     Py_INCREF(panda3d_mod);
+
+    // Some classes must be initalized manually
+    PythonThread::init_type();
+    PythonTask::init_type();
 
     initcore();
 
