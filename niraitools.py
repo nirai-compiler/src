@@ -3,13 +3,32 @@ assert not __debug__ # Run with -OO
 #from panda3d.core import *
 
 from collections import OrderedDict
-import subprocess, glob, sys, os
 from termcolor import colored
 
 import niraimarshal
-import aes
+
+import subprocess
+import glob
+import imp
+import sys
+import os
 
 SOURCE_ROOT = os.path.dirname(os.path.abspath(__file__))
+
+# Load our aes module
+for ext in ('pyd', 'so', 'dylib'):
+    filename = os.path.join(SOURCE_ROOT, 'aes.' + ext)
+    if os.path.isfile(filename):
+        try:
+            aes = imp.load_dynamic('aes', filename)
+            break
+
+        except:
+            continue
+
+else:
+    raise ImportError('cannot find aes')
+
 NIRAI_ROOT = os.path.abspath(os.path.join(SOURCE_ROOT, '..'))
 PYTHON_ROOT = os.path.join(NIRAI_ROOT, 'python')
 PANDA3D_ROOT = os.path.join(NIRAI_ROOT, 'panda3d')
