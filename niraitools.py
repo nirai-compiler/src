@@ -44,7 +44,7 @@ class NiraiCompilerBase:
         if thirdparty:
             root = os.path.normpath(lib).split(os.sep)[0]
             self.includedirs.add(os.path.join(self.thirdpartydir, root, 'include'))
-            
+
             lib = os.path.join(self.thirdpartydir, lib)
 
         self.libs.add(lib)
@@ -52,7 +52,7 @@ class NiraiCompilerBase:
     def add_nirai_files(self):
         for filename in ('aes.cxx', 'main.cxx'):
             self.add_source(os.path.join(SOURCE_ROOT, filename))
-            
+
         self.add_library('pythonembed')
 
     def _run_command(self, cmd):
@@ -223,7 +223,7 @@ class NiraiCompilerDarwin(NiraiCompilerBase):
                 lib = lib[:-2]
 
             cmd += ' -l%s' % lib
-            
+
         for obj in self._built:
             cmd += ' "%s"' % obj
 
@@ -235,10 +235,10 @@ class NiraiCompilerLinux(NiraiCompilerBase):
     def __init__(self, *args, **kwargs):
         NiraiCompilerBase.__init__(self, *args, **kwargs)
         self.libs = list(self.libs)
-    
+
     def add_library(self, lib):
         self.libs.append(lib)
-        
+
     def add_panda3d_lib(self, lib):
         self.add_library(os.path.join(self.builtLibs, lib))
 
@@ -254,7 +254,7 @@ class NiraiCompilerLinux(NiraiCompilerBase):
         self.add_panda3d_lib('_panda3d_physics')
         self.add_panda3d_lib('_panda3d_ode')
         self.add_panda3d_lib('_panda3d_egg')
-        
+
         self.add_panda3d_lib('p3framework')
         self.add_panda3d_lib('p3tinydisplay')
         self.add_panda3d_lib('p3direct')
@@ -294,7 +294,7 @@ class NiraiCompilerLinux(NiraiCompilerBase):
         self.add_library('dl')
         self.add_library('pthread')
         self.add_library('util')
-        
+
     def compile(self, filename):
         print filename
         out = '%s/%s.o' % (self.outputdir, os.path.basename(filename).rsplit('.', 1)[0])
@@ -307,10 +307,10 @@ class NiraiCompilerLinux(NiraiCompilerBase):
 
         self._run_command(cmd)
         self._built.add(out)
-        
+
     def link(self):
         cmd = 'g++ -o %s/%s' % (self.outputdir, self.output)
-        
+
         for path in self.libpath:
             cmd += ' -L"%s"' % path
 
@@ -329,7 +329,7 @@ class NiraiCompilerLinux(NiraiCompilerBase):
 
         self._run_command(cmd)
 
-class NiraiPackager: 
+class NiraiPackager:
     HEADER = 'NRI\n'
 
     def __init__(self, outfile):
@@ -364,7 +364,7 @@ class NiraiPackager:
     def compile_module(self, name, data):
         return niraimarshal.dumps(compile(data, name, 'exec'))
 
-    def add_module(self, moduleName, data, size=None, compile=False, negSize=False):                
+    def add_module(self, moduleName, data, size=None, compile=False, negSize=False):
         if compile:
             data = self.compile_module(moduleName, data)
 
@@ -404,7 +404,7 @@ class NiraiPackager:
         norm = os.path.normpath(abs)
         if relative:
             rel = os.path.relpath(norm)
-            
+
         else:
             rel = norm
         return len(rel) + len(os.sep)
@@ -451,7 +451,7 @@ class NiraiPackager:
     def get_file_contents(self, filename, encrypt=False):
         with open(filename, 'rb') as f:
             data = f.read()
-            
+
         if encrypt:
             iv = self.generate_key(16)
             key = self.generate_key(16)

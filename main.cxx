@@ -35,7 +35,7 @@ _P3D_INIT(interrogatedb)
 #ifdef WIN32
 void init_libwgldisplay();
 void init_libwindisplay();
-void init_libtinydisplay();
+//void init_libtinydisplay();
 #elif __APPLE__
 void init_libcocoadisplay();
 #elif __linux
@@ -85,7 +85,7 @@ static void start_nirai()
 #ifdef WIN32
     init_libwgldisplay();
     init_libwindisplay();
-    init_libtinydisplay();
+//    init_libtinydisplay();
 #elif __APPLE__
     init_libcocoadisplay();
 #elif __linux
