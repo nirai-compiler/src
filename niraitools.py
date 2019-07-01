@@ -94,7 +94,7 @@ class NiraiCompilerWindows(NiraiCompilerBase):
     def add_nirai_files(self):
         NiraiCompilerBase.add_nirai_files(self)
 
-        self.thirdpartydir = os.path.join(THIRDPARTY_ROOT, 'win-libs-vc10')
+        self.thirdpartydir = os.path.join(THIRDPARTY_ROOT, 'win-libs-vc14')
         self.libs |= set(glob.glob(os.path.join(self.builtLibs, '*.lib')))
 
         self.add_library('ws2_32')
